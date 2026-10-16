@@ -49,6 +49,7 @@ target_sources(${RACK_PLUGIN_LIB} PRIVATE
 	src/comm/comm_module.cc
 	src/mapping/midi_modules.cc
 	src/mapping/patch_writer.cc
+	src/mapping/surge_native_export.cc
 	src/mapping/module_specific_fixes.cc
     src/network/network.cpp
 	src/filesystem/async_filebrowser.cc

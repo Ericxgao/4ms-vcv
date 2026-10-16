@@ -14,6 +14,8 @@
 #include "mapping/module_directory.hh"
 #include "mapping/module_specific_fixes.hh"
 #include "mapping/patch_writer.hh"
+#include "mapping/surge_native_export.hh"
+#include <osdialog.h>
 #include "plugin.hh"
 #include <fstream>
 #include <rack.hpp>
@@ -93,6 +95,17 @@ struct VCVPatchFileWriter {
 			while (connected_modules.size() != num_found) {
 
 				num_found = connected_modules.size();
+				// Include uncabled intermediate Unison expanders in Connected mode.
+				for (auto id : engine->getModuleIds()) {
+					auto *left = engine->getModule(id);
+					auto *right = left ? left->rightExpander.module : nullptr;
+					if (isSurgeUnisonPair(left, right) &&
+						(connected_modules.contains(id) || connected_modules.contains(right->getId())))
+					{
+						connected_modules.insert(id);
+						connected_modules.insert(right->getId());
+					}
+				}
 
 				for (auto cable_id : cables) {
 					auto *cable = engine->getCable(cable_id);
@@ -335,6 +348,13 @@ struct VCVPatchFileWriter {
 			}
 		}
 
+		try {
+			SurgeNativeExport::convert(pw.get_data());
+		} catch (SurgeNativeExport::Error const &error) {
+			osdialog_message(
+				OSDIALOG_WARNING, OSDIALOG_OK, (std::string("Surge native export: ") + error.what()).c_str());
+			return {}; // Both Save and Wi-Fi Send abort before writing anything.
+		}
 		return pw.printPatchYAML();
 	}
 
@@ -382,7 +402,17 @@ struct VCVPatchFileWriter {
 		return (left->model && right->model && left->model->plugin && (left->model->plugin == right->model->plugin));
 	}
 
+	static bool isSurgeUnisonPair(rack::Module *left, rack::Module *right) {
+		if (!left || !right || !isSamePlugin(left, right) || left->model->plugin->slug != "SurgeXTRack")
+			return false;
+		return (left->model->slug == "SurgeXTUnisonHelper" || left->model->slug == "SurgeXTUnisonHelperCVExpander") &&
+			   right->model->slug == "SurgeXTUnisonHelperCVExpander";
+	}
+
 	static bool isLikelyExpanderPair(rack::Module *left, rack::Module *right) {
+		// Surge's CV expander lacks Rack's Expander tag in its plugin metadata.
+		if (isSurgeUnisonPair(left, right))
+			return true;
 		return isSamePlugin(left, right) && (hasExpanderTag(left) || hasExpanderTag(right));
 	}
 
