@@ -364,19 +364,13 @@ struct Plan {
 	std::map<Key, Ref> refs;
 	std::map<Key, std::vector<Jack>> inputs;
 	std::map<unsigned, unsigned> output_counts;
-	std::set<Key> connected, mapped;
+	std::set<Key> mapped;
 	std::vector<InternalCable> helper_cables;
 	std::vector<ModuleInitState> native_states;
 
 	explicit Plan(PatchData &patch)
 		: p(patch)
 		, source(patch) {
-		for (auto const &c : source.int_cables)
-			for (auto const &j : c.ins)
-				connected.emplace(j.module_id, j.jack_id);
-		for (auto const &c : source.mapped_ins)
-			for (auto const &j : c.ins)
-				connected.emplace(j.module_id, j.jack_id);
 		for (auto const &bank : source.knob_sets)
 			for (auto const &m : bank.set)
 				mapped.emplace(m.module_id, m.param_id);
@@ -408,7 +402,6 @@ struct Plan {
 					std::vector<float> const &gains = {},
 					std::vector<unsigned> const &ignored = {},
 					std::vector<int> const &cv_ids = {},
-					bool force_matrix = false,
 					std::vector<unsigned> const &required_targets = {},
 					std::string const &matrix_destination = {}) {
 		if (native_base < 0)
@@ -430,7 +423,7 @@ struct Plan {
 		// Selector conversion can require an output even with no modulation.
 		// Requesting a matrix controls its type, not whether all jacks are wired.
 		std::set<unsigned> targets(required_targets.begin(), required_targets.end());
-		bool compact = !force_matrix, needed = !required_targets.empty();
+		bool needed = !required_targets.empty();
 		for (unsigned s = 0; s < 4; ++s) {
 			inputs[{mid, input + s}] = {};
 		}
@@ -438,30 +431,11 @@ struct Plan {
 			for (unsigned s = 0; s < 4; ++s) {
 				if (depth(t, s) != 0 || mapped.contains({mid, start + 4 * t + s})) {
 					active.emplace_back(t, s);
-					const bool first_target = targets.insert(t).second;
-					// Firmware sums stacked cables per lane. That is exact for
-					// mono destinations, but loses mono-to-poly broadcasting when
-					// mixed-width sources are combined, so retain a mixer there.
-					compact &= (first_target || !poly) && connected.contains({mid, input + s}) && gain(t) <= 1;
+					targets.insert(t);
 				}
 			}
 		needed |= !active.empty();
-		compact &= !active.empty() && active.size() <= 4;
-		if (compact) {
-			for (unsigned first = 0; first < active.size(); first += 2) {
-				auto h = helper("4msCompany:Atvert2", mid);
-				set(h, 0, .5);
-				set(h, 1, .5);
-				for (unsigned ch = 0; ch < 2 && first + ch < active.size(); ++ch) {
-					auto [t, s] = active[first + ch];
-					set(h, ch, .5f + depth(t, s) * gain(t) / 2);
-					refs[{mid, start + 4 * t + s}] = {h, ch, .5f - gain(t) / 2, .5f + gain(t) / 2};
-					inputs[{mid, input + s}].push_back({uint16_t(h), uint16_t(ch)});
-					if (audible(t) && destination(t) >= 0)
-						connect(h, ch, mid, destination(t));
-				}
-			}
-		} else if (needed) {
+		if (needed) {
 			for (unsigned first = 0; first < count; first += 8) {
 				bool used = false;
 				for (unsigned t = first; t < std::min(first + 8, count); ++t)
@@ -656,7 +630,6 @@ struct Plan {
 					   gains,
 					   {},
 					   {(alias || string) ? 12 : 11, 2, 3, 4, 5, 6, 7, 8},
-					   true,
 					   required_targets,
 					   model.substr(10));
 			if (alias) {
@@ -937,7 +910,6 @@ struct Plan {
 					   {vcf ? 1.f : .5f, .5, .5, .5, .5},
 					   {},
 					   {},
-					   false,
 					   {},
 					   vcf ? "VCF" : "Waveshaper");
 			for (unsigned i = 5; i < 25; ++i)
@@ -1228,7 +1200,7 @@ struct Plan {
 			for (unsigned id = source.module_slugs.size(); id < p.module_slugs.size(); ++id) {
 				require(row < 32767 && x < 32767, "Helper positions exceed patch coordinate range");
 				p.module_positions.push_back({uint16_t(id), int16_t(x), int16_t(row)});
-				x += std::string_view(p.module_slugs[id].c_str()) == "4msCompany:Atvert2" ? 4 : 12;
+				x += 12;
 			}
 		}
 		p.clear_load_balance();
@@ -1477,17 +1449,17 @@ unsigned expand_unison(PatchData &p) {
 				for (auto [m, port] : global_only_outputs) {
 					require(p.module_slugs.size() < 64, "Unison output termination exceeds the 64-module patch limit");
 					unsigned sink = p.module_slugs.size();
-					p.module_slugs.emplace_back("4msCompany:Atvert2");
+					p.module_slugs.emplace_back("SurgeXTNative:ModMatrix");
 					++added;
-					p.static_knobs.push_back({uint16_t(sink), 0, .5f});
-					p.static_knobs.push_back({uint16_t(sink), 1, .5f});
+					for (unsigned parameter = 0; parameter < 40; ++parameter)
+						p.static_knobs.push_back({uint16_t(sink), uint16_t(parameter), .5f});
 					p.module_aliases.push_back({uint16_t(sink), "Unison output termination"});
 					p.int_cables.push_back(
 						{{uint16_t(copies.at(m)[bank]), uint16_t(port)}, {{uint16_t(sink), 0}}, 0xfc80});
 					if (!original.module_positions.empty()) {
 						require(row < 32766, "Unison termination placement exceeds patch coordinates");
 						p.module_positions.push_back(
-							{uint16_t(sink), int16_t(terminator_column++ * 4), int16_t(row + 1)});
+							{uint16_t(sink), int16_t(terminator_column++ * 12), int16_t(row + 1)});
 					}
 				}
 			for (unsigned i = 0; i < original.mapped_ins.size(); ++i)
