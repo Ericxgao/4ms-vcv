@@ -101,7 +101,6 @@ std::string table_state(json_t *specific, unsigned order, bool steep, bool dc) {
 		   surge_mm::table_base64(bytes.data(), bytes.size());
 }
 // Rack FX engine slots are not necessarily the native panel control order.
-// Parameter IDs, input IDs and gain units are documented in surge_native_export.md.
 struct EffectSpec {
 	char const *name;
 	unsigned count, poly_param;
