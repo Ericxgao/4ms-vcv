@@ -442,13 +442,15 @@ struct Plan {
 					used |= targets.contains(t);
 				if (!used)
 					continue;
-				const auto matrix_slug = "SurgeXTNative:ModMatrix" + matrix_destination;
+				const auto matrix_slug = "SurgeXTNative:ModMatrix" + matrix_destination +
+										 (first && !matrix_destination.empty() ? "Part2" : "");
 				auto h = helper(matrix_slug.c_str(), mid);
 				if (!matrix_destination.empty()) {
-					const auto alias = matrix_destination + " " + std::to_string(mid) + " CV depths";
+					const auto alias =
+						matrix_destination + " " + std::to_string(mid) + " CV depths" + (first ? " 2" : "");
 					p.module_aliases.back().alias_name = alias.c_str();
 					report.notes.push_back(
-						"Named CV depth menus require SurgeXTNative 0.1.42 and firmware 2.4 or later.");
+						"Named CV depth menus require SurgeXTNative 0.1.49 and firmware 2.4 or later.");
 				}
 				for (unsigned i = 0; i < 40; ++i)
 					set(h, i, .5);
@@ -541,7 +543,7 @@ struct Plan {
 			constexpr float defaults[]{.1f, 0, 0, 1, .25f, 0, .5f, 0, 0};
 			for (unsigned i = 0; i < 9; ++i)
 				param(i, i, defaults[i]);
-			modulation(mid, 9, 5, 4, true, raw);
+			modulation(mid, 9, 5, 4, true, raw, -1, {}, {}, {}, {}, "UnisonHelper");
 			for (unsigned i = 9; i < 25; ++i)
 				consumed.insert(i);
 			native_states.push_back({uint16_t(mid), "surge-unison-rack-v1"});
@@ -860,7 +862,13 @@ struct Plan {
 				inputs[{mid, old}] = {{uint16_t(mid), uint16_t(native)}};
 			auto ignored = e.integers;
 			ignored.insert(ignored.end(), e.booleans.begin(), e.booleans.end());
-			modulation(mid, 12, 5, e.count, poly, raw, 2, e.gains, ignored, e.cv_ids);
+			std::string matrix_destination = e.name;
+			if (model == "SurgeXTFXNimbus") {
+				static constexpr char const *profiles[]{"Nimbus", "NimbusPitch", "NimbusLoop", "NimbusSpectral"};
+				const auto mode = std::min(3u, rounded(params[{mid, 0}] * 3));
+				matrix_destination = profiles[mode];
+			}
+			modulation(mid, 12, 5, e.count, poly, raw, 2, e.gains, ignored, e.cv_ids, {}, matrix_destination);
 			for (unsigned i = 12; i < 60; ++i)
 				value(i, .5);
 			direct = 2;
@@ -926,7 +934,7 @@ struct Plan {
 			native_states.push_back({uint16_t(mid), "surge-delay-rack-v1"});
 			report.notes.push_back(
 				"Delay imports require SurgeXTNative 0.1.23 or later. Saved compatibility state preserves Rack's initial clock edge, tempo history across disconnects/format changes and BPM-voltage calculation.");
-			modulation(mid, 10, 3, 10, false, raw);
+			modulation(mid, 10, 3, 10, false, raw, -1, {}, {}, {}, {}, "Delay");
 			for (unsigned i = 10; i < 50; ++i)
 				consumed.insert(i);
 			direct = 3;
@@ -949,7 +957,18 @@ struct Plan {
 			allowed(specific, {});
 			direct = 6;
 			native_states.push_back({uint16_t(mid), "surge-tuned-plus-rack-v1"});
-			modulation(mid, 11, 6, 7, true, raw, -1, {1, .5, .5, .5, .5, .5, .5}, {}, {13, 6, 7, 8, 9, 10, 11});
+			modulation(mid,
+					   11,
+					   6,
+					   7,
+					   true,
+					   raw,
+					   -1,
+					   {1, .5, .5, .5, .5, .5, .5},
+					   {},
+					   {13, 6, 7, 8, 9, 10, 11},
+					   {},
+					   "DelayLineByFreqExpanded");
 			for (unsigned i = 11; i < 39; ++i)
 				consumed.insert(i);
 			report.notes.push_back(
@@ -977,7 +996,7 @@ struct Plan {
 			// Rack's readModuleSpecificJson disables automatic first-connect
 			// unmute. Preserve saved mutes through the equivalent native state.
 			native_states.push_back({uint16_t(mid), "surge-mixer-v1"});
-			modulation(mid, 20, 6, 8, true, raw);
+			modulation(mid, 20, 6, 8, true, raw, -1, {}, {}, {}, {}, "Mixer");
 			for (unsigned i = 20; i < 52; ++i)
 				consumed.insert(i);
 			direct = 6;
@@ -996,7 +1015,7 @@ struct Plan {
 			if (voices > 4)
 				report.notes.push_back("Quad LFO forced polyphony limited to four native voices");
 			native_states.push_back({uint16_t(mid), "surge-quad-lfo-rack-v1"});
-			modulation(mid, 16, 4, 8, true, raw);
+			modulation(mid, 16, 4, 8, true, raw, -1, {}, {}, {}, {}, "QuadLFO");
 			for (unsigned i = 16; i < 48; ++i)
 				consumed.insert(i);
 			direct = 4;
@@ -1009,7 +1028,7 @@ struct Plan {
 			allowed(specific, {"attackFromZero"});
 			set(mid, 32, json_bool(specific, "attackFromZero", false) ? 1 : 0);
 			native_states.push_back({uint16_t(mid), "surge-quad-ad-rack-v1"});
-			modulation(mid, 32, 4, 8, true, raw);
+			modulation(mid, 32, 4, 8, true, raw, -1, {}, {}, {}, {}, "QuadAD");
 			for (unsigned i = 32; i < 64; ++i)
 				consumed.insert(i);
 			direct = 4;
@@ -1025,7 +1044,7 @@ struct Plan {
 			allowed(specific, {"clockStyle"});
 			set(mid, 16, json_number(specific, "clockStyle", 0));
 			native_states.push_back({uint16_t(mid), "surge-eg-vca-rack-v1"});
-			modulation(mid, 12, 4, 7, true, raw);
+			modulation(mid, 12, 4, 7, true, raw, -1, {}, {}, {}, {}, "EGxVCA");
 			for (unsigned i = 12; i < 40; ++i)
 				consumed.insert(i);
 			direct = 4;
@@ -1085,7 +1104,7 @@ struct Plan {
 			native_states.push_back({uint16_t(mid), "surge-lfo-rack-v1"});
 			report.notes.push_back(
 				"LFO imports require SurgeXTNative 0.1.22 or later. Saved compatibility state preserves Rack's shape/deform transitions, trigger roles, gate and clock history, and mono event outputs.");
-			modulation(mid, 12, 4, 10, true, raw);
+			modulation(mid, 12, 4, 10, true, raw, -1, {}, {}, {}, {}, "LFO");
 			for (unsigned i = 12; i < 52; ++i)
 				consumed.insert(i);
 			direct = 4;
