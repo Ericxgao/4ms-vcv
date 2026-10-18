@@ -118,15 +118,7 @@ The combined 0.1.45 Hub build passed three export/expander/network suites,
 Windows loading, and export/simulator coverage of all 46 Rack module types.
 Those results include the separate HTTP-response and class-name fixes. The
 isolated commits and current source organization have not been rebuilt.
-The native companion's [validation record](https://github.com/Ericxgao/surge-rack/blob/pr/native-surge-port/metamodule/VALIDATION.md)
-identifies the frozen artifacts and remaining hardware/fidelity checks.
-
-The companion's [hardware overload record](https://github.com/Ericxgao/surge-rack/blob/pr/native-surge-port/metamodule/hardware/2026-10-18-spring.md)
-adds USB004 measurements at 48 kHz / 256 samples. Only Spring overloaded among
-46 fixed native demos on 0.1.45. Development 0.1.47 reduced that patch from
-121.46% to 71.34% mean CPU (73.93% peak), with zero overruns across the fixed,
-high-setting and audio-rate-CV tests. The hardest test peaked at 86.75%.
-The optimization changes no exported IDs, mappings or compatibility markers;
-this converter remains compatible. Measurements cover the identified native
-development packages, not a new build of these isolated Hub commits, Wi-Fi
-transfer performance, or arbitrary helper-heavy exported graphs.
+The native companion's [PR description](https://github.com/Ericxgao/surge-rack/pull/1)
+contains the validation summary and full hardware CPU table, including the
+Spring optimization. That change preserves exported IDs, mappings and
+compatibility markers; this converter remains compatible.
