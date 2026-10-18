@@ -316,12 +316,10 @@ struct HubMediumWidget : MetaModuleHubWidget {
 
 		wifiResponseLabel->text = "Sending patch file...";
 
-		std::string vol_string =
-			(size_t)pluginSettings.wifiVolume < volumeLabels.size() ? volumeLabels[pluginSettings.wifiVolume] : "Card";
+		std::string vol_string = (size_t)pluginSettings.wifiVolume < volumeLabels.size() ? volumeLabels[pluginSettings.wifiVolume] : "Card";
 
 		auto encoded = FlatBuffers::encode_file(patchFileName, yml, vol_string);
-		auto response_message =
-			network::requestRaw(rack::network::Method::METHOD_POST, pluginSettings.wifiUrl + "/action", encoded);
+		auto response_message = network::requestRaw(rack::network::Method::METHOD_POST, pluginSettings.wifiUrl + "/action", encoded);
 		auto [success, response] = FlatBuffers::decode_response(response_message);
 
 		wifiResponseLabel->showFor(120);
@@ -336,9 +334,8 @@ struct HubMediumWidget : MetaModuleHubWidget {
 	}
 
 	void promptWifiUrl() {
-		auto addr = osdialog_prompt(osdialog_message_level::OSDIALOG_INFO,
-									"Enter the address (e.g. http://192.168.1.22)",
-									pluginSettings.wifiUrl.c_str());
+		auto addr = osdialog_prompt(
+			osdialog_message_level::OSDIALOG_INFO, "Enter the address (e.g. http://192.168.1.22)", pluginSettings.wifiUrl.c_str());
 
 		if (addr) {
 			//TODO: ensure is just http://\d.\d.\d.\d[/]?
@@ -576,8 +573,8 @@ struct HubMediumWidget : MetaModuleHubWidget {
 	}
 
 	std::string formatWifiStatus() {
-		return "Wi-Fi Connection:\n" + pluginSettings.wifiUrl + "\n" + "Copy patch to: " +
-			   (size_t(pluginSettings.wifiVolume) < volumeLabels.size() ? volumeLabels[pluginSettings.wifiVolume] : "");
+		return "Wi-Fi Connection:\n" + pluginSettings.wifiUrl + "\n" +
+			   "Copy patch to: " + (size_t(pluginSettings.wifiVolume) < volumeLabels.size() ? volumeLabels[pluginSettings.wifiVolume] : "");
 	}
 
 	void updateKnobSetLabel() {
