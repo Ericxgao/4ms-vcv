@@ -279,6 +279,8 @@ struct HubMediumWidget : MetaModuleHubWidget {
 													hubModule->use_builtin_midi,
 													hubModule->module_aliases,
 													hubModule->auto_map_audio_outs});
+		if (yml.empty())
+			return;
 		PatchFileWriter::writeToFile(patchFileName, yml);
 	}
 
@@ -303,6 +305,8 @@ struct HubMediumWidget : MetaModuleHubWidget {
 													hubModule->use_builtin_midi,
 													hubModule->module_aliases,
 													hubModule->auto_map_audio_outs});
+		if (yml.empty())
+			return;
 		if (yml.size() > 256 * 1024 && pluginSettings.wifiVolume == Volume::Internal) {
 			wifiResponseLabel->showFor(180);
 			wifiResponseLabel->text = "File too large for Internal: max is 256kB";

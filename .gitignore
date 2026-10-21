@@ -13,3 +13,6 @@
 .vscode
 tests/build/obj/runtests
 **/settings.local.json
+
+# Local development notes
+*.md
