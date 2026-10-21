@@ -75,6 +75,13 @@ set(VCVRACK TRUE)
 
 add_subdirectory(lib/CoreModules)
 add_subdirectory(lib/CoreModules/4ms)
+
+# Rack supplies its own HubMedium; the firmware I/O processor is not used here.
+# Exclude it before WHOLE_ARCHIVE linking to avoid duplicate C++ symbols.
+get_target_property(RACK_CORE_SOURCES CoreModules-4ms SOURCES)
+list(FILTER RACK_CORE_SOURCES EXCLUDE REGEX "/hub/hub_medium[.]cc$")
+set_property(TARGET CoreModules-4ms PROPERTY SOURCES "${RACK_CORE_SOURCES}")
+
 add_subdirectory(lib/metamodule-plugin-sdk/core-interface)
 add_subdirectory(lib/patch-serial)
 add_subdirectory(lib/cpputil)

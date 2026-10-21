@@ -15,7 +15,7 @@ using namespace rack;
 namespace MetaModule
 {
 
-struct RackHubMedium : MetaModuleHubBase {
+struct HubMedium : MetaModuleHubBase {
 	using INFO = HubMediumInfo;
 
 	rack::dsp::BooleanTrigger wifibut_trig;
@@ -25,7 +25,7 @@ struct RackHubMedium : MetaModuleHubBase {
 	static constexpr auto saveButtonIndex = ElementCount::count<INFO>().num_params;
 	static constexpr auto wifiSendButtonIndex = saveButtonIndex + 1;
 
-	RackHubMedium()
+	HubMedium()
 		: MetaModuleHubBase(12) {
 
 		// Register with VCV the number of elements of each type
@@ -100,7 +100,7 @@ struct HubMediumWidget : MetaModuleHubWidget {
 	const std::vector<std::string> mappingModeLabels = {
 		"All", "Left & Right Only", "Right Only", "Left Only", "Connected"};
 
-	HubMediumWidget(RackHubMedium *module)
+	HubMediumWidget(HubMedium *module)
 		: MetaModuleHubWidget{module} {
 		setModule(module);
 
@@ -185,14 +185,14 @@ struct HubMediumWidget : MetaModuleHubWidget {
 
 		// Add the Save button
 		saveButton =
-			createParamCentered<HubSaveButton>(rack::math::Vec(358.5f, 38.57f), module, RackHubMedium::saveButtonIndex);
+			createParamCentered<HubSaveButton>(rack::math::Vec(358.5f, 38.57f), module, HubMedium::saveButtonIndex);
 		addParam(saveButton);
 
 		// Wifi
 		wifiSendButton = new HubWifiButton();
 		wifiSendButton->box.pos = rack::math::Vec(318.f, 38.57f);
 		wifiSendButton->app::ParamWidget::module = module;
-		wifiSendButton->app::ParamWidget::paramId = RackHubMedium::wifiSendButtonIndex;
+		wifiSendButton->app::ParamWidget::paramId = HubMedium::wifiSendButtonIndex;
 		wifiSendButton->initParamQuantity();
 		wifiSendButton->box.pos = wifiSendButton->box.pos.minus(wifiSendButton->box.size.div(2));
 		wifiSendButton->getLight()->setBrightnesses({0.5f});
@@ -266,7 +266,7 @@ struct HubMediumWidget : MetaModuleHubWidget {
 
 		patchName->text = rack::system::getStem(filename);
 
-		using PatchFileWriter = VCVPatchFileWriter<RackHubMedium::MaxMapsPerPot, MaxKnobSets>;
+		using PatchFileWriter = VCVPatchFileWriter<HubMedium::MaxMapsPerPot, MaxKnobSets>;
 		auto yml = PatchFileWriter::createPatchYml({hubModule->id,
 													hubModule->mappings,
 													hubModule->jack_alias,
@@ -292,7 +292,7 @@ struct HubMediumWidget : MetaModuleHubWidget {
 			patchFileName += ".yml";
 		}
 
-		using PatchFileWriter = VCVPatchFileWriter<RackHubMedium::MaxMapsPerPot, MaxKnobSets>;
+		using PatchFileWriter = VCVPatchFileWriter<HubMedium::MaxMapsPerPot, MaxKnobSets>;
 		auto yml = PatchFileWriter::createPatchYml({hubModule->id,
 													hubModule->mappings,
 													hubModule->jack_alias,
@@ -625,4 +625,4 @@ struct HubMediumWidget : MetaModuleHubWidget {
 
 } // namespace MetaModule
 
-rack::Model *modelHubMedium = rack::createModel<MetaModule::RackHubMedium, MetaModule::HubMediumWidget>("HubMedium");
+rack::Model *modelHubMedium = rack::createModel<MetaModule::HubMedium, MetaModule::HubMediumWidget>("HubMedium");
